@@ -3,6 +3,7 @@
   <head>
     <title>The Pasifika Film Database</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
     <style>
@@ -23,10 +24,10 @@
         width: 350px;
         margin: 10px;
         padding: 10px;
-        background-color: #ffffff;
+        background-color: ##eafafa;
         border-radius: 5px;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 12px;
+        font-family:'Ubuntu Mono', monospace;
+        font-size: 16px;
         line-height: 1.5;
         color: #000000;
         z-index: 1;
@@ -64,7 +65,7 @@
       let map = new mapboxgl.Map({
         container: "map",
         style: "mapbox://styles/cwilmott/cm0piv4vu00dq01rg4ljwh2us", // Custom style URL
-        center: [-122.3321, 47.6062], // starting position [lng, lat]
+        center: [-180, 0], // starting position [lng, lat]
         zoom: 12,
         accessToken: "pk.eyJ1IjoiY3dpbG1vdHQiLCJhIjoiY2s2bWRjb2tiMG1xMjNqcDZkbGNjcjVraiJ9.2nNOYL23A1cfZSE4hdC9ew", // Mapbox token
       });
