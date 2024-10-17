@@ -1,196 +1,139 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>The Pasifika Film Database</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-      }
-      #map {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 100%;
-      }
-      #info {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 350px;
-        margin: 10px;
-        padding: 10px;
-        background-color: ##eafafa;
-        border-radius: 5px;
+<head>
+  <title>The Pasifika Film Database</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+    #info {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 350px;
+      margin: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      font-family:'Ubuntu Mono', monospace;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #000000;
+      z-index: 1;
+    }
+    h3 {
+    font-family:'Ubuntu Mono', monospace;
+    }
+    h4 {
         font-family:'Ubuntu Mono', monospace;
-        font-size: 16px;
-        line-height: 1.5;
-        color: #000000;
-        z-index: 1;
-      }
-      .halo-text {
-  font-family: 'Ubuntu Mono', monospace;
-  font-size: 24px;
-  color: #000000; /* Text color */
-  text-shadow: 
-    -1px -1px 0 #FFFFFF, /* Top-left shadow */
-     1px -1px 0 #FFFFFF, /* Top-right shadow */
-    -1px  1px 0 #FFFFFF, /* Bottom-left shadow */
-     1px  1px 0 #FFFFFF; /* Bottom-right shadow */
-}
-      #popup {
-        padding: 10px;
-      }
-      #name, #content {
-        width: 100%;
-        height: 20px;
-        margin-bottom: 10px;
-      }
-      #submit {
-        float: right;
-      }
-    </style>
-  </head>
+        font-size: 11px;
+    }
 
-  <body>
-    <div id="map"></div>
+    p {
+        font-family:'Ubuntu Mono', monospace;
+        font-size: 8px;
+    }
+  </style>
+</head>
 
-    <div id="info">
-      <h3>The Pasifika Film Database</h3>
-      <p></p>
-    </div>
+<body>
+  <div id="map"></div>
+  <div id="info">
+    <h3>The Pasifika Film Database</h3>
+    <p></p>
+  </div>
 
-    <script>
-      let popup = null;
+  <script>
+    mapboxgl.accessToken = "pk.eyJ1IjoiY3dpbG1vdHQiLCJhIjoiY2s2bWRjb2tiMG1xMjNqcDZkbGNjcjVraiJ9.2nNOYL23A1cfZSE4hdC9ew";
 
-      let geojson = {
-        type: "FeatureCollection",
-        features: [],
-      };
+    let map = new mapboxgl.Map({
+      container: "map",
+      style: "mapbox://styles/cwilmott/cm0piv4vu00dq01rg4ljwh2us", // Custom style URL
+      center: [-180, 0], // starting position [lng, lat]
+      zoom: 2
+    });
 
-      let map = new mapboxgl.Map({
-        container: "map",
-        style: "mapbox://styles/cwilmott/cm0piv4vu00dq01rg4ljwh2us", // Custom style URL
-        center: [-180, 0], // starting position [lng, lat]
-        zoom: 4,
-        accessToken: "pk.eyJ1IjoiY3dpbG1vdHQiLCJhIjoiY2s2bWRjb2tiMG1xMjNqcDZkbGNjcjVraiJ9.2nNOYL23A1cfZSE4hdC9ew", // Mapbox token
+    map.on('load', () => {
+      // Load the polygon source and layer
+      map.addSource('polygons', {
+        type: 'geojson',
+        data: 'polygon.geojson' // External GeoJSON URL for polygons
       });
-
-      window.addEventListener("load", async function () {
-        let response = await fetch(
-          "https://pasifika-film-database-72e0e4c6f13e.herokuapp.com/api/get-record",
-          { method: "GET" }
-        );
-        let data = await response.json();
-
-        for (let i = 0; i < data.rows.length; i++) {
-          geojson.features.push({
-            type: "Feature",
-            properties: {
-              contributor: data.rows[i].contributor,
-              content: data.rows[i].content,
-            },
-            geometry: {
-              type: "Point",
-              coordinates: [data.rows[i].lng, data.rows[i].lat],
-            },
-          });
+      map.addLayer({
+        id: 'polygon_layer',
+        type: 'fill',
+        source: 'polygons',
+        layout: {},
+        paint: {
+          'fill-color': '#088',
+          'fill-opacity': 0.5
         }
       });
 
-      map.on("load", function () {
-        map.addSource("places", { type: "geojson", data: geojson });
-
-        map.addLayer({
-          id: "placesLayer",
-          type: "circle",
-          source: "places",
-          paint: {
-            "circle-radius": 6,
-            "circle-color": "#B42222",
-          },
-        });
+      // Load the films source and layer
+      map.addSource('films', {
+        type: 'geojson',
+        data: 'Pasifika_Film_Database.geojson' // External GeoJSON URL for films
+      });
+      map.addLayer({
+        id: 'film_layer',
+        type: 'circle',
+        source: 'films',
+        layout: {},
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#088',
+          'circle-opacity': 0
+          
+        }
       });
 
-      map.on("mouseenter", "placesLayer", function (e) {
-        map.getCanvas().style.cursor = "pointer";
+      // Add a click event to display a popup for GeoJSON points
+      map.on('click', 'film_layer', (e) => {
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const title = e.features[0].properties.filmName;
+        const description = e.features[0].properties.summary;
+        const filmaker = e.features[0].properties.dataEntryName;
+        const funder = e.features[0].properties.fund1;
+        const imageUrl = e.features[0].properties.image;
+        // Ensure the popup is positioned correctly across the antimeridian
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
 
-        var coordinates = e.features[0].geometry.coordinates;
-        var content = e.features[0].properties.content;
-        var contributor = e.features[0].properties.contributor;
-
-        popup = new mapboxgl.Popup()
+        // Create and show the popup
+        new mapboxgl.Popup()
           .setLngLat(coordinates)
-          .setHTML(
-            "<p><b>" + contributor + "</b> <i>said:</i> " + content + "</p>"
-          )
+          .setHTML(`
+            <h3>${title}</h3>
+            <h4>${filmaker}</h4>
+            <h4>${funder}</h4>
+            <p>${description}</p>
+            <img src="${imageUrl}" alt="${title}" style="width:100%;height:auto;">`)
           .addTo(map);
       });
 
-      map.on("mouseleave", "placesLayer", function () {
-        map.getCanvas().style.cursor = "";
-        popup.remove();
+      // Change the cursor to a pointer when hovering over points
+      map.on('mouseenter', 'film_layer', () => {
+        map.getCanvas().style.cursor = 'pointer';
       });
 
-      map.on("click", function (e) {
-        if (popup) {
-          popup.remove();
-        }
-
-        const popupContent =
-          '<div id="popup"><input type="text" id="name" placeholder="Input your name here..."><input type="text" id="content" placeholder="Input your message here..."><button id="submit">submit</button></div>';
-
-        popup = new mapboxgl.Popup({ closeOnClick: false })
-          .setLngLat(e.lngLat)
-          .setHTML(popupContent)
-          .addTo(map);
-
-        document
-          .getElementById("submit")
-          .addEventListener("click", submitNewRecord);
-        e.preventDefault();
+      // Change it back when not hovering over points
+      map.on('mouseleave', 'film_layer', () => {
+        map.getCanvas().style.cursor = '';
       });
+    });
+  </script>
 
-      async function submitNewRecord() {
-        let contributor = document.getElementById("name").value;
-        let content = document.getElementById("content").value;
-        let lngLat = popup.getLngLat();
-
-        let newRecord = new URLSearchParams();
-        newRecord.append("contributor", contributor);
-        newRecord.append("content", content);
-        newRecord.append("lng", lngLat.lng);
-        newRecord.append("lat", lngLat.lat);
-
-        let settings = { method: "POST", body: newRecord };
-
-        try {
-          await fetch(
-            "https://pasifika-film-database-72e0e4c6f13e.herokuapp.com/api/add-record",
-            settings
-          );
-        } catch (err) {
-          console.error(err);
-        } finally {
-          popup.remove();
-          geojson.features.push({
-            type: "Feature",
-            properties: {
-              contributor: contributor,
-              content: content,
-            },
-            geometry: {
-              type: "Point",
-              coordinates: [lngLat.lng, lngLat.lat],
-            },
-          });
-          map.getSource("places").setData(geojson);
-        }
-      }
-    </script>
-  </body>
+</body>
 </html>
