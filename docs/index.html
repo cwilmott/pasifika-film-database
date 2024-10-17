@@ -71,7 +71,7 @@
 
       window.addEventListener("load", async function () {
         let response = await fetch(
-          "https://participatory-mapping-70cdde6a8df5.herokuapp.com/api/get-record",
+          "https://pasifika-film-database-72e0e4c6f13e.herokuapp.com/api/get-record",
           { method: "GET" }
         );
         let data = await response.json();
@@ -159,7 +159,7 @@
 
         try {
           await fetch(
-            "https://participatory-mapping-70cdde6a8df5.herokuapp.com/api/add-record",
+            "https://pasifika-film-database-72e0e4c6f13e.herokuapp.com/api/add-record",
             settings
           );
         } catch (err) {
