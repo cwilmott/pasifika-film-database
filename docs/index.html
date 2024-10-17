@@ -32,6 +32,16 @@
         color: #000000;
         z-index: 1;
       }
+      .halo-text {
+  font-family: 'Ubuntu Mono', monospace;
+  font-size: 24px;
+  color: #000000; /* Text color */
+  text-shadow: 
+    -1px -1px 0 #FFFFFF, /* Top-left shadow */
+     1px -1px 0 #FFFFFF, /* Top-right shadow */
+    -1px  1px 0 #FFFFFF, /* Bottom-left shadow */
+     1px  1px 0 #FFFFFF; /* Bottom-right shadow */
+}
       #popup {
         padding: 10px;
       }
@@ -66,7 +76,7 @@
         container: "map",
         style: "mapbox://styles/cwilmott/cm0piv4vu00dq01rg4ljwh2us", // Custom style URL
         center: [-180, 0], // starting position [lng, lat]
-        zoom: 12,
+        zoom: 4,
         accessToken: "pk.eyJ1IjoiY3dpbG1vdHQiLCJhIjoiY2s2bWRjb2tiMG1xMjNqcDZkbGNjcjVraiJ9.2nNOYL23A1cfZSE4hdC9ew", // Mapbox token
       });
 
