@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Pasifika Film Database</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+<link href="styles.css" rel="stylesheet">
+</head>
+<body>
+<div class="site-title">The Pasifika Film Database</div>
+<div id="error-message"></div>
+<div id="loading">Loading data...</div>
+<div id="status"></div>
+<div id="view-toggles">
+    <button class="view-toggle active" data-view="map">Map View</button>
+    <button class="view-toggle" data-view="card">Card View</button>
+    <button class="view-toggle" data-view="explore">Explore the Data</button>
+</div>
+
+<div id="map-view" class="view">
+    <div id="map"></div>
+</div>
+<div id="card-view" class="view"></div>
+<div id="add-film-view" class="view">
+    <iframe class="airtable-embed" 
+            src="https://airtable.com/embed/appcEBCLKzb58kPPB/pagjjQ3AJxruAD6HK/form" 
+            frameborder="0" 
+            onmousewheel="" 
+            width="100%" 
+            height="533" 
+            style="background: transparent; border: 1px solid #ccc;">
+    </iframe>
+</div>
+
+<div id="sidebar">
+    <button id="sidebar-close">&times;</button>
+    <div class="sidebar-content"></div>
+</div>
+<div id="search-container">
+    <input type="text" id="search-input" placeholder="Search films...">
+    <div id="search-results"></div>
+</div>
+
+<!-- Add this new element before the closing body tag -->
+<div id="filmModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<!-- Add before closing body tag -->
+<button id="debugButton">Debug GeoJSON</button>
+<div id="debugModal">
+    <div class="debug-content">
+        <button class="modal-close">&times;</button>
+        <h2>GeoJSON Debug View</h2>
+        <pre id="debugContent"></pre>
+    </div>
+</div>
+
+<!-- Add before closing body tag -->
+<button id="rawDataButton">Raw Airtable Data</button>
+<div id="rawDataModal">
+    <div class="raw-data-content">
+        <button class="modal-close">&times;</button>
+        <h2>Raw Airtable Data</h2>
+        <pre id="rawDataContent"></pre>
+    </div>
+</div>
+
+<script>
+// ...existing code...
+
+// First, initialize mapbox with a loading state
+mapboxgl.accessToken = 'pk.eyJ1IjoiY3dpbG1vdHQiLCJhIjoiY2s2bWRjb2tiMG1xMjNqcDZkbGNjcjVraiJ9.2nNOYL23A1cfZSE4hdC9ew';
+const map = new mapboxgl.Map({
+    container: 'map',  
+    style: 'mapbox://styles/cwilmott/cm0piv4vu00dq01rg4ljwh2us',
+    projection: 'globe',
+    zoom: 2,
+    center: [108, 4]
+});
+
+// Simplified Airtable fetch function
+async function fetchAirtableData() {
+    const AIRTABLE_API_KEY = 'pat75vJpq47njUgsk.a5563da232685f397da27bf35646fb3860fead8680a64c75e06258155fe9301c';
+    const BASE_ID = 'appcEBCLKzb58kPPB';
+    const TABLE_NAME = 'films';
+    
+    let allRecords = [];
+    let offset = null;
+    
+    try {
+        do {
+            // Add prefetch parameters to get linked record data
+            const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}?view=Grid%20view&pageSize=100${offset ? `&offset=${offset}` : ''}&prefetch[]=Filmmaker&prefetch[]=language`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            allRecords = allRecords.concat(data.records);
+            offset = data.offset;
+            
+            // Log the raw data to see the structure
+            console.log('Raw response:', data);
+            
+        } while (offset);
+
+        return allRecords;
+    } catch (error) {
+        console.error('Airtable fetch error:', error);
+        throw error;
+    }
+}
+
+// Add this new function to fetch filmmaker data
+async function fetchFilmmakerData() {
+    const AIRTABLE_API_KEY = 'pat75vJpq47njUgsk.a5563da232685f397da27bf35646fb3860fead8680a64c75e06258155fe9301c';
+    const BASE_ID = 'appcEBCLKzb58kPPB';
+    
+    try {
+        const url = `https://api.airtable.com/v0/${BASE_ID}/filmmakers`;  // Changed from 'Filmmaker' to 'filmmakers'
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Filmmaker lookup data:', data); // Add debug logging
+        return data.records.reduce((acc, record) => {
+            acc[record.id] = record.fields.name;  // Changed from 'Name' to 'name'
+            return acc;
+        }, {});
+    } catch (error) {
+        console.error('Error fetching filmmaker data:', error);
+        return {};
+    }
+}
+
+// Add new function to fetch language data
+async function fetchLanguageData() {
+    const AIRTABLE_API_KEY = 'pat75vJpq47njUgsk.a5563da232685f397da27bf35646fb3860fead8680a64c75e06258155fe9301c';
+    const BASE_ID = 'appcEBCLKzb58kPPB';
+    
+    try {
+        const url = `https://api.airtable.com/v0/${BASE_ID}/languages`;  // Changed from 'language' to 'languages'
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Language lookup data:', data); // Add debug logging
+        return data.records.reduce((acc, record) => {
+            acc[record.id] = record.fields.name;  // Changed from 'Name' to 'name'
+            return acc;
+        }, {});
+    } catch (error) {
+        console.error('Error fetching language data:', error);
+        return {};
+    }
+}
+
+// Update initialization to ensure map is loaded before adding data
+async function initializeMap() {
+    showLoading(true);
+    
+    try {
+        // Fetch all datasets in parallel
+        const [records, filmmakerData, languageData] = await Promise.all([
+            fetchAirtableData(),
+            fetchFilmmakerData(),
+            fetchLanguageData()
+        ]);
+        
+        console.log('Records fetched:', records.length);
+        console.log('Filmmaker data:', filmmakerData);
+        console.log('Language data:', languageData);
+        
+        // Store raw data for debug
+        rawAirtableData = records;
+        
+        // Process the records and replace IDs with names
+        const dataArray = records.map(record => {
+            const fields = { ...record.fields };
+            
+            // Handle Filmmaker field
+            if (fields.Filmmaker) {
+                if (Array.isArray(fields.Filmmaker)) {
+                    fields.Filmmaker = fields.Filmmaker
+                        .map(id => filmmakerData[id] || id)
+                        .filter(name => name)
+                        .join(', ');
+                } else {
+                    fields.Filmmaker = filmmakerData[fields.Filmmaker] || fields.Filmmaker;
+                }
+            }
+            
+            // Handle Language field
+            if (fields.language) {
+                if (Array.isArray(fields.language)) {
+                    fields.language = fields.language
+                        .map(id => languageData[id] || id)
+                        .filter(name => name)
+                        .join(', ');
+                } else {
+                    fields.language = languageData[fields.language] || fields.language;
+                }
+            }
+            
+            return fields;
+        });
+
+        const geojsonData = convertPasifikaToGeoJSON(dataArray);
+
+        // Add source and layer to map
+        if (map.getSource('pasifika-films')) {
+            map.removeLayer('pasifika-points');
+            map.removeSource('pasifika-films');
+        }
+
+        map.addSource('pasifika-films', {
+            type: 'geojson',
+            data: geojsonData
+        });
+
+        map.addLayer({
+            id: 'pasifika-points',
+            type: 'circle',
+            source: 'pasifika-films',
+            paint: {
+                'circle-radius': 4,
+                'circle-color': 'rgba(201, 172, 115, 0.7)',
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#000000'
+            }
+        });
+
+        // Initialize card view
+        document.getElementById('card-view').appendChild(createCardView(geojsonData.features));
+        
+        showLoading(false);
+        console.log('Map initialization complete');
+    } catch (error) {
+        console.error('Initialization error:', error);
+        showError(error.message);
+        showLoading(false);
+    }
+}
+
+// Update the initialization
+document.addEventListener('DOMContentLoaded', () => {
+    initializeMap().catch(error => {
+        console.error('Failed to initialize:', error);
+        showError(error.message);
+    });
+});
+
+// ...rest of existing code...
+
+let rawAirtableData = null; // Add this variable to store raw data
+
+async function fetchAirtableData() {
+    const AIRTABLE_API_KEY = 'pat75vJpq47njUgsk.a5563da232685f397da27bf35646fb3860fead8680a64c75e06258155fe9301c';
+    const BASE_ID = 'appcEBCLKzb58kPPB';
+    const TABLE_NAME = 'films';
+    
+    let allRecords = [];
+    let offset = null;
+    
+    do {
+        const url = new URL(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`);
+        const params = {
+            view: 'Grid view',
+            pageSize: '100'
+        };
+        if (offset) {
+            params.offset = offset;
+        }
+        
+        Object.entries(params).forEach(([key, value]) => {
+            url.searchParams.append(key, value);
+        });
+
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        allRecords = allRecords.concat(data.records);
+        rawAirtableData = allRecords;
+        offset = data.offset;
+        
+        console.log(`Fetched ${data.records.length} records. Total so far: ${allRecords.length}`);
+    } while (offset);
+
+    return allRecords;
+}
+
+function convertPasifikaToGeoJSON(jsonData) {
+    const stats = {
+        total: jsonData.length,
+        success: 0,
+        failed: 0,
+        reasons: {}
+    };
+    
+    const features = jsonData.map(item => {
+        // Convert any array values to strings
+        const processedProperties = Object.fromEntries(
+            Object.entries(item).map(([key, value]) => {
+                if (key === 'Filmmaker' || key === 'language') {
+                    return [key, Array.isArray(value) ? value.join(', ') : value];
+                }
+                return [key, value];
+            })
+        );
+
+        // Extract coordinates, handling various formats
+        let longitude = Number(processedProperties.longitude);
+        let latitude = Number(processedProperties.latitude);
+
+        // Validate coordinates
+        const isValidLong = !isNaN(longitude) && longitude >= -180 && longitude <= 180;
+        const isValidLat = !isNaN(latitude) && latitude >= -90 && latitude <= 90;
+        
+        if (!isValidLong || !isValidLat) {
+            stats.failed++;
+            const reason = !isValidLong && !isValidLat ? 'both coordinates invalid' :
+                          !isValidLong ? 'invalid longitude' : 'invalid latitude';
+            stats.reasons[reason] = (stats.reasons[reason] || 0) + 1;
+            return null;
+        }
+
+        stats.success++;
+        return {
+            type: "Feature",
+            geometry: {
+                type: "Point",
+                coordinates: [longitude, latitude]
+            },
+            properties: processedProperties
+        };
+    }).filter(feature => feature !== null);
+
+    // Display stats
+    const statusDiv = document.getElementById('status');
+    statusDiv.innerHTML = `
+        <strong>Location Loading Status:</strong><br>
+        Total: ${stats.total}<br>
+        Loaded: ${stats.success}<br>
+        Failed: ${stats.failed}<br>
+        ${Object.entries(stats.reasons).map(([reason, count]) => 
+            `${reason}: ${count}`
+        ).join('<br>')}
+    `;
+    
+    return {
+        type: "FeatureCollection",
+        features
+    };
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+function showLoading(show) {
+    document.getElementById('loading').style.display = show ? 'block' : 'none';
+}
+
+let mapLoaded = false;
+map.on('load', () => {
+    console.log('[' + new Date().toISOString() + '] Map loaded');
+    mapLoaded = true;
+});
+
+// Simplified data loading
+async function loadGeoJSONData() {
+    try {
+        showLoading(true);
+        console.log('Fetching Airtable data...');
+        
+        const records = await fetchAirtableData();
+        console.log('Records received:', records?.length || 0);
+
+        if (!records?.length) {
+            throw new Error('No records found in Airtable');
+        }
+
+        const dataArray = records.map(record => record.fields);
+        console.log('Data array:', dataArray);
+
+        const geojsonData = convertPasifikaToGeoJSON(dataArray);
+        
+        if (!geojsonData.features.length) {
+            throw new Error('No valid coordinates found in records');
+        }
+
+        // Wait for map to be ready
+        await new Promise(resolve => {
+            if (map.loaded()) {
+                resolve();
+            } else {
+                map.on('load', resolve);
+            }
+        });
+
+        // Add to map
+        if (map.getSource('pasifika-films')) {
+            map.removeLayer('pasifika-points');
+            map.removeSource('pasifika-films');
+        }
+
+        map.addSource('pasifika-films', {
+            type: 'geojson',
+            data: geojsonData
+        });
+
+        map.addLayer({
+            id: 'pasifika-points',
+            type: 'circle',
+            source: 'pasifika-films',
+            paint: {
+                'circle-radius': 4,
+                'circle-color': 'rgba(201, 172, 115, 0.7)', // Changed from '#C9AC73' to add transparency
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#000000'
+            }
+        });
+
+        // After successfully loading the map data, initialize the other views
+        const features = geojsonData.features;
+        document.getElementById('card-view').appendChild(createCardView(features));
+        
+        showLoading(false);
+        console.log('Data loading complete');
+
+    } catch (error) {
+        console.error('Error:', error);
+        showError(`Error: ${error.message}`);
+        showLoading(false);
+    }
+}
+
+// Simple initialization
+document.addEventListener('DOMContentLoaded', () => {
+    loadGeoJSONData().catch(error => {
+        console.error('Failed to load data:', error);
+        showError(error.message);
+    });
+});
+
+// ...existing code...
+
+map.on('click', 'pasifika-points', (e) => {
+    const properties = e.features[0].properties;
+    
+    const sidebarContent = `
+        <h3 style="margin-top: 0;">${properties.Name || 'Untitled'}</h3>
+        <p><strong>Release Date:</strong> ${properties['Release Date'] || 'N/A'}</p>
+        <p>${properties.logline || ''}</p>
+        ${properties.image_link ? 
+            `<img src="${properties.image_link}" alt="${properties.Name}" style="width:100%;height:auto;">` : 
+            ''}
+        <button class="read-more-btn">Read More</button>
+    `;
+
+    const sidebar = document.getElementById('sidebar');
+    const sidebarContentDiv = sidebar.querySelector('.sidebar-content');
+    sidebarContentDiv.innerHTML = sidebarContent;
+    
+    sidebarContentDiv.querySelector('.read-more-btn').addEventListener('click', () => {
+        showFilmDetails(properties);
+    });
+    
+    sidebar.classList.add('visible');
+});
+
+// Add close button functionality
+document.getElementById('sidebar-close').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('visible');
+});
+
+// Change the cursor to a pointer when the mouse is over the places layer.
+map.on('mouseenter', 'pasifika-points', () => {
+    map.getCanvas().style.cursor = 'pointer';
+});
+
+// Change it back to a pointer when it leaves.
+map.on('mouseleave', 'pasifika-points', () => {
+    map.getCanvas().style.cursor = '';
+});
+
+// Add this after your existing GeoJSON loading code
+function searchFeatures(searchText) {
+    const source = map.getSource('pasifika-films');
+    if (!source) return [];
+    
+    const features = source._data.features;
+    const searchLower = searchText.toLowerCase();
+    
+    return features.filter(feature => {
+        const properties = feature.properties;
+        return properties.Name?.toLowerCase().includes(searchLower) ||
+               properties.logline?.toLowerCase().includes(searchLower);
+    });
+}
+
+function showSearchResults(results) {
+    const resultsContainer = document.getElementById('search-results');
+    
+    if (results.length === 0) {
+        resultsContainer.style.display = 'none';
+        return;
+    }
+
+    resultsContainer.innerHTML = results.map(feature => `
+        <div class="search-result-item" data-id="${feature.properties.Name}">
+            ${feature.properties.Name}
+        </div>
+    `).join('');
+    
+    resultsContainer.style.display = 'block';
+}
+
+// Add search functionality
+document.getElementById('search-input').addEventListener('input', (e) => {
+    const searchText = e.target.value.trim();
+    if (searchText.length < 2) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+    
+    const results = searchFeatures(searchText);
+    showSearchResults(results);
+});
+
+document.getElementById('search-results').addEventListener('click', (e) => {
+    const resultItem = e.target.closest('.search-result-item');
+    if (!resultItem) return;
+
+    const filmName = resultItem.dataset.id;
+    const source = map.getSource('pasifika-films');
+    const feature = source._data.features.find(f => f.properties.Name === filmName);
+    
+    if (feature) {
+        // Center map on the selected feature
+        map.flyTo({
+            center: feature.geometry.coordinates,
+            zoom: 5
+        });
+
+        // Show sidebar with feature info
+        const properties = feature.properties;
+        const sidebarContent = `
+            <h3 style="margin-top: 0;">${properties.Name || 'Untitled'}</h3>
+            <p><strong>Release Date:</strong> ${properties['Release Date'] || 'N/A'}</p>
+            <p>${properties.logline || ''}</p>
+            ${properties.image_link ? 
+                `<img src="${properties.image_link}" alt="${properties.Name}" style="width:100%;height:auto;">` : 
+                ''}
+        `;
+
+        const sidebar = document.getElementById('sidebar');
+        const sidebarContentDiv = sidebar.querySelector('.sidebar-content');
+        sidebarContentDiv.innerHTML = sidebarContent;
+        sidebar.classList.add('visible');
+    }
+
+    // Clear search
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-results').style.display = 'none';
+});
+
+// Hide search results when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#search-container')) {
+        document.getElementById('search-results').style.display = 'none';
+    }
+});
+
+// ...existing code...
+
+function createCardView(features) {
+    const cardContainer = document.createElement('div');
+    cardContainer.className = 'card-container';
+    
+    features.forEach(feature => {
+        const props = feature.properties;
+        const card = document.createElement('div');
+        card.className = 'film-card';
+        card.innerHTML = `
+            ${props.image_link ? `<img src="${props.image_link}" alt="${props.Name}">` : ''}
+            <h3>${props.Name || 'Untitled'}</h3>
+            <p><strong>Release Date:</strong> ${props['Release Date'] || 'N/A'}</p>
+            <p>${props.logline || ''}</p>
+            <button class="read-more-btn">Read More</button>
+        `;
+        
+        card.querySelector('.read-more-btn').addEventListener('click', () => {
+            showFilmDetails(props);
+        });
+        
+        cardContainer.appendChild(card);
+    });
+    
+    return cardContainer;
+}
+
+function switchView(viewName) {
+    const mapView = document.getElementById('map-view');
+    const cardView = document.getElementById('card-view');
+    const addFilmView = document.getElementById('add-film-view');
+    
+    // Update toggle buttons
+    document.querySelectorAll('.view-toggle').forEach(button => {
+        button.classList.toggle('active', button.dataset.view === viewName);
+    });
+    
+    // Hide all views first
+    [mapView, cardView, addFilmView].forEach(el => el.style.display = 'none');
+    
+    // Show selected view or navigate to dataplay.html
+    switch(viewName) {
+        case 'map':
+            mapView.style.display = 'block';
+            break;
+        case 'card':
+            cardView.style.display = 'block';
+            if (!cardView.children.length) {
+                const features = map.getSource('pasifika-films')._data.features;
+                cardView.appendChild(createCardView(features));
+            }
+            break;
+        case 'explore':
+            window.location.href = 'data.html';
+            break;
+        case 'add-film':
+            addFilmView.style.display = 'flex';
+            break;
+    }
+}
+
+// Add view toggle event listeners
+document.querySelectorAll('.view-toggle').forEach(button => {
+    button.addEventListener('click', () => switchView(button.dataset.view));
+});
+
+function showFilmDetails(properties) {
+    const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = `
+        <h2>${properties.Name || 'Untitled'}</h2>
+        ${properties.image_link ? 
+            `<img src="${properties.image_link}" alt="${properties.Name}" style="max-width:100%;height:auto;margin:10px 0;">` : 
+            ''}
+        <p><strong>Release Date:</strong> ${properties['Release Date'] || 'N/A'}</p>
+        <p><strong>Filmmaker:</strong> ${properties.Filmmaker || 'N/A'}</p>
+        <p><strong>Language:</strong> ${properties.language || 'N/A'}</p>
+        <p><strong>Summary:</strong> ${properties.logline || 'N/A'}</p>
+    `;
+    document.getElementById('filmModal').style.display = 'block';
+}
+
+// Add modal close functionality
+document.querySelector('.modal-close').addEventListener('click', () => {
+    document.getElementById('filmModal').style.display = 'none';
+});
+
+// Close modal when clicking outside
+window.addEventListener('click', (e) => {
+    const modal = document.getElementById('filmModal');
+    if (e.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+
+// Add after loadGeoJSONData function
+function showDebugData() {
+    const source = map.getSource('pasifika-films');
+    if (!source) {
+        console.log('No GeoJSON data loaded yet');
+        return;
+    }
+
+    const geojsonData = source._data;
+    console.log('GeoJSON Data:', geojsonData);
+    
+    // Display in modal
+    document.getElementById('debugContent').textContent = 
+        JSON.stringify(geojsonData, null, 2);
+    document.getElementById('debugModal').style.display = 'block';
+}
+
+// Add event listeners
+document.getElementById('debugButton').addEventListener('click', showDebugData);
+
+document.querySelector('#debugModal .modal-close').addEventListener('click', () => {
+    document.getElementById('debugModal').style.display = 'none';
+});
+
+// Close debug modal when clicking outside
+document.getElementById('debugModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('debugModal')) {
+        document.getElementById('debugModal').style.display = 'none';
+    }
+});
+
+// Add these new functions after your existing script code
+function showRawData() {
+    if (!rawAirtableData) {
+        console.log('No raw data available yet');
+        return;
+    }
+    
+    document.getElementById('rawDataContent').textContent = 
+        JSON.stringify(rawAirtableData, null, 2);
+    document.getElementById('rawDataModal').style.display = 'block';
+}
+
+// Add event listeners
+document.getElementById('rawDataButton').addEventListener('click', showRawData);
+
+document.querySelector('#rawDataModal .modal-close').addEventListener('click', () => {
+    document.getElementById('rawDataModal').style.display = 'none';
+});
+
+document.getElementById('rawDataModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('rawDataModal')) {
+        document.getElementById('rawDataModal').style.display = 'none';
+    }
+});
+
+// ...existing code...
+</script>
+
+</body>
+</html>

@@ -1,0 +1,427 @@
+
+/* General Styles */
+body { 
+    margin: 0; 
+    padding: 0; 
+    background: linear-gradient(135deg, #1f656d 0%, #88b7bb 100%);
+    min-height: 100vh;  /* Ensure gradient covers full viewport height */
+}
+
+.site-title {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    z-index: 1000;
+    font-family: 'Ubuntu Mono', monospace;
+    color: white;
+    font-size: 24px;
+    text-align: right;
+}
+
+#map { 
+    position: absolute; 
+    top: 0; 
+    bottom: 0; 
+    width: 100%; 
+}
+
+#error-message {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+    z-index: 1000;
+}
+
+#loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 4px;
+    display: none;
+    z-index: 1000;
+}
+
+#status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 4px;
+    z-index: 1000;
+    font-family: sans-serif;
+}
+
+#sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px; /* Start hidden */
+    width: 400px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);  /* Changed to semi-transparent */
+    box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+    overflow-y: auto;
+    transition: right 0.3s ease;
+    z-index: 1000;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+#sidebar.visible {
+    right: 0;
+}
+
+#sidebar-close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    cursor: pointer;
+    font-size: 20px;
+    background: none;
+    border: none;
+    padding: 5px;
+}
+
+.sidebar-content {
+    padding: 20px;
+    padding-top: 40px;
+}
+
+#search-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;  /* Changed from right to left */
+    z-index: 1000;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+#search-input {
+    padding: 8px;
+    border: none;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
+    width: 200px;
+    font-family: inherit;
+}
+
+#search-results {
+    margin-top: 5px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+.search-result-item {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.search-result-item:hover {
+    background: rgba(201, 172, 115, 0.3);
+}
+
+/* View Toggle Styles */
+#view-toggles {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px;
+    border-radius: 4px;
+    display: flex;
+    gap: 5px;
+}
+
+.view-toggle {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #fff;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+.view-toggle.active {
+    background: rgba(201, 172, 115, 0.7);
+    color: black;
+}
+
+#map-view, #card-view, #add-film-view {
+    position: absolute;
+    top: 60px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 4px;
+    padding: 20px;
+    overflow-y: auto;
+    display: none;  /* All views start hidden */
+    z-index: 999;
+}
+
+#map-view {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0;
+    display: block;  /* Only map view starts visible */
+}
+
+#card-view {
+    min-height: 100vh;  /* Ensure gradient covers full viewport height */
+}
+
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    min-height: 100vh;  /* Make sure container fills the viewport */
+}
+
+#add-film-view {
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 40px;
+}
+
+.film-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.film-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 15px;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+.film-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+.film-table th, .film-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.film-table th {
+    background: rgba(201, 172, 115, 0.3);
+    position: sticky;
+    top: 0;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    z-index: 2000;
+}
+
+.modal-content {
+    position: relative;
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 8px;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+.modal-close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    font-size: 24px;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+.read-more-btn {
+    background: rgba(201, 172, 115, 0.7);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Ubuntu Mono', monospace;
+    margin-top: 10px;
+}
+
+.read-more-btn:hover {
+    background: rgba(201, 172, 115, 0.9);
+}
+
+/* Debug Modal Styles */
+#debugModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    z-index: 2000;
+}
+
+.debug-content {
+    position: relative;
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    width: 90%;
+    height: 80%;
+    border-radius: 8px;
+    font-family: 'Ubuntu Mono', monospace;
+    overflow: auto;
+}
+
+#debugButton {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+/* Raw Data Modal Styles */
+#rawDataButton {
+    position: absolute;
+    bottom: 20px;
+    right: 120px; /* Position it to the left of the debug button */
+    z-index: 1000;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+#rawDataModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    z-index: 2000;
+}
+
+.raw-data-content {
+    position: relative;
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    width: 90%;
+    height: 80%;
+    border-radius: 8px;
+    font-family: 'Ubuntu Mono', monospace;
+    overflow: auto;
+}
+
+/* Data Visualization Page Styles */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    margin-bottom: 10px;
+    border-radius: 8px 8px 0 0;  /* Round top corners only */
+}
+
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+.tab button:hover {
+    background-color: #ddd;
+}
+
+.tab button.active {
+    background-color: #ccc;
+}
+
+.tab button[onclick*="Add"] {
+    color: #666666;  /* Slightly grey text color */
+}
+
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+    background: white;
+    border-radius: 0 0 8px 8px;  /* Round bottom corners only */
+}
+
+.back-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.9);
+    font-family: 'Ubuntu Mono', monospace;
+    text-decoration: none;
+    color: black;
+}
+
+.back-button:hover {
+    background: rgba(201, 172, 115, 0.7);
+}
+
+.content-container {
+    position: absolute;
+    top: 60px; /* Space for back button */
+    left: 50%;
+    transform: translateX(-50%);  /* Center the container */
+    width: 95%;  /* Set width to 95% of viewport */
+    bottom: 0;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.9); /* Changed from 0.95 to 0.9 for more transparency */
+    border-radius: 12px;  /* Round all corners of the container */
+}
