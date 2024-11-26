@@ -47,16 +47,6 @@ body {
     display: none;
     z-index: 1000;
 }
-#status {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 4px;
-    z-index: 1000;
-    font-family: sans-serif;
-}
 #sidebar {
     position: fixed;
     top: 0;
@@ -272,77 +262,10 @@ body {
 }
 
 /* Add debug modal styles */
-#debugModal {
+#debugModal, .debug-content, #debugButton,
+#rawDataModal, .raw-data-content, #rawDataButton,
+#status {
     display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.7);
-    z-index: 2000;
-}
-
-.debug-content {
-    position: relative;
-    background-color: #fff;
-    margin: 5% auto;
-    padding: 20px;
-    width: 90%;
-    height: 80%;
-    border-radius: 8px;
-    font-family: 'Ubuntu Mono', monospace;
-    overflow: auto;
-}
-
-#debugButton {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.9);
-    cursor: pointer;
-    font-family: 'Ubuntu Mono', monospace;
-}
-
-/* Add these new styles before the closing style tag */
-#rawDataButton {
-    position: absolute;
-    bottom: 20px;
-    right: 120px; /* Position it to the left of the debug button */
-    z-index: 1000;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.9);
-    cursor: pointer;
-    font-family: 'Ubuntu Mono', monospace;
-}
-
-#rawDataModal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.7);
-    z-index: 2000;
-}
-
-.raw-data-content {
-    position: relative;
-    background-color: #fff;
-    margin: 5% auto;
-    padding: 20px;
-    width: 90%;
-    height: 80%;
-    border-radius: 8px;
-    font-family: 'Ubuntu Mono', monospace;
-    overflow: auto;
 }
 
 #explore-view {
@@ -425,7 +348,6 @@ body {
 <div class="site-title">The Pasifika Film Database</div>
 <div id="error-message"></div>
 <div id="loading">Loading data...</div>
-<div id="status"></div>
 
 <div id="view-toggles">
     <button class="view-toggle active" data-view="map">Map View</button>
@@ -534,26 +456,6 @@ body {
     </div>
 </div>
 
-<!-- Add before closing body tag -->
-<button id="debugButton">Debug GeoJSON</button>
-<div id="debugModal">
-    <div class="debug-content">
-        <button class="modal-close">&times;</button>
-        <h2>GeoJSON Debug View</h2>
-        <pre id="debugContent"></pre>
-    </div>
-</div>
-
-<!-- Add before closing body tag -->
-<button id="rawDataButton">Raw Airtable Data</button>
-<div id="rawDataModal">
-    <div class="raw-data-content">
-        <button class="modal-close">&times;</button>
-        <h2>Raw Airtable Data</h2>
-        <pre id="rawDataContent"></pre>
-    </div>
-</div>
-
 <script>
 // ...existing code...
 
@@ -578,8 +480,8 @@ async function fetchAirtableData() {
     
     try {
         do {
-            // Add prefetch parameters to get linked record data
-            const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}?view=Grid%20view&pageSize=100${offset ? `&offset=${offset}` : ''}&prefetch[]=Filmmaker&prefetch[]=language`;
+            // Removed pageSize parameter to get maximum records per request
+            const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}?view=Grid%20view${offset ? `&offset=${offset}` : ''}&prefetch[]=Filmmaker&prefetch[]=language`;
             
             const response = await fetch(url, {
                 headers: {
@@ -594,9 +496,6 @@ async function fetchAirtableData() {
             const data = await response.json();
             allRecords = allRecords.concat(data.records);
             offset = data.offset;
-            
-            // Log the raw data to see the structure
-            console.log('Raw response:', data);
             
         } while (offset);
 
@@ -762,8 +661,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ...rest of existing code...
 
-let rawAirtableData = null; // Add this variable to store raw data
-
 async function fetchAirtableData() {
     const AIRTABLE_API_KEY = 'pat75vJpq47njUgsk.a5563da232685f397da27bf35646fb3860fead8680a64c75e06258155fe9301c';
     const BASE_ID = 'appcEBCLKzb58kPPB';
@@ -810,13 +707,6 @@ async function fetchAirtableData() {
 }
 
 function convertPasifikaToGeoJSON(jsonData) {
-    const stats = {
-        total: jsonData.length,
-        success: 0,
-        failed: 0,
-        reasons: {}
-    };
-    
     const features = jsonData.map(item => {
         // Convert any array values to strings
         const processedProperties = Object.fromEntries(
@@ -837,14 +727,9 @@ function convertPasifikaToGeoJSON(jsonData) {
         const isValidLat = !isNaN(latitude) && latitude >= -90 && latitude <= 90;
         
         if (!isValidLong || !isValidLat) {
-            stats.failed++;
-            const reason = !isValidLong && !isValidLat ? 'both coordinates invalid' :
-                          !isValidLong ? 'invalid longitude' : 'invalid latitude';
-            stats.reasons[reason] = (stats.reasons[reason] || 0) + 1;
             return null;
         }
 
-        stats.success++;
         return {
             type: "Feature",
             geometry: {
@@ -854,18 +739,6 @@ function convertPasifikaToGeoJSON(jsonData) {
             properties: processedProperties
         };
     }).filter(feature => feature !== null);
-
-    // Display stats
-    const statusDiv = document.getElementById('status');
-    statusDiv.innerHTML = `
-        <strong>Location Loading Status:</strong><br>
-        Total: ${stats.total}<br>
-        Loaded: ${stats.success}<br>
-        Failed: ${stats.failed}<br>
-        ${Object.entries(stats.reasons).map(([reason, count]) => 
-            `${reason}: ${count}`
-        ).join('<br>')}
-    `;
     
     return {
         type: "FeatureCollection",
@@ -1183,62 +1056,6 @@ window.addEventListener('click', (e) => {
     const modal = document.getElementById('filmModal');
     if (e.target === modal) {
         modal.style.display = 'none';
-    }
-});
-
-// Add after loadGeoJSONData function
-function showDebugData() {
-    const source = map.getSource('pasifika-films');
-    if (!source) {
-        console.log('No GeoJSON data loaded yet');
-        return;
-    }
-
-    const geojsonData = source._data;
-    console.log('GeoJSON Data:', geojsonData);
-    
-    // Display in modal
-    document.getElementById('debugContent').textContent = 
-        JSON.stringify(geojsonData, null, 2);
-    document.getElementById('debugModal').style.display = 'block';
-}
-
-// Add event listeners
-document.getElementById('debugButton').addEventListener('click', showDebugData);
-
-document.querySelector('#debugModal .modal-close').addEventListener('click', () => {
-    document.getElementById('debugModal').style.display = 'none';
-});
-
-// Close debug modal when clicking outside
-document.getElementById('debugModal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('debugModal')) {
-        document.getElementById('debugModal').style.display = 'none';
-    }
-});
-
-// Add these new functions after your existing script code
-function showRawData() {
-    if (!rawAirtableData) {
-        console.log('No raw data available yet');
-        return;
-    }
-    
-    document.getElementById('rawDataContent').textContent = 
-        JSON.stringify(rawAirtableData, null, 2);
-    document.getElementById('rawDataModal').style.display = 'block';
-}
-
-// Add event listeners
-document.getElementById('rawDataButton').addEventListener('click', showRawData);
-
-document.querySelector('#rawDataModal .modal-close').addEventListener('click', () => {
-    document.getElementById('rawDataModal').style.display = 'none';
-});
-
-document.getElementById('rawDataModal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('rawDataModal')) {
-        document.getElementById('rawDataModal').style.display = 'none';
     }
 });
 
