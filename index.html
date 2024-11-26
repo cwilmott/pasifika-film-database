@@ -154,7 +154,7 @@ body {
     color: black;
 }
 
-#map-view, #card-view, #add-film-view {
+#map-view, #card-view {  /* Removed #add-film-view */
     position: absolute;
     top: 60px;
     left: 10px;
@@ -187,12 +187,6 @@ body {
     gap: 20px;
     padding: 20px;
     min-height: 100vh;  /* Make sure container fills the viewport */
-}
-
-#add-film-view {
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 40px;
 }
 
 .film-card img {
@@ -351,23 +345,79 @@ body {
     overflow: auto;
 }
 
-.content-container {
+#explore-view {
     position: absolute;
-    top: 60px; /* Space for back button */
-    left: 50%;
-    transform: translateX(-50%);  /* Center the container */
-    width: 95%;  /* Set width to 95% of viewport */
-    bottom: 0;
+    top: 60px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 4px;
     padding: 20px;
-    background-color: rgba(255, 255, 255, 0.9); /* Changed from 0.95 to 0.9 for more transparency */
-    border-radius: 12px;  /* Round all corners of the container */
-    overflow: hidden; /* Ensure content doesn't overflow */
-    display: none; /* Start hidden */
+    overflow-y: auto;
+    display: none;
+    z-index: 999;
 }
-.tabcontent iframe {
+
+/* Tab Styles */
+.tab-container {
+    margin-bottom: 20px;
+}
+
+.tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Ubuntu Mono', monospace;
+    background: #fff;
+    transition: background-color 0.3s;
+}
+
+.tab-button:hover {
+    background: rgba(201, 172, 115, 0.5);
+}
+
+.tab-button.active {
+    background: rgba(201, 172, 115, 0.7);
+}
+
+.tab-button.add-tab {
+    color: #666;
+    font-weight: 300;
+}
+
+.tab-content {
+    display: none;
+    padding: 20px;
+    background: white;
+    border-radius: 4px;
+    height: calc(100vh - 200px); /* Adjust height to account for tab header */
+    overflow: hidden; /* Prevent scrolling of the container itself */
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content iframe {
     width: 100%;
-    height: calc(100vh - 200px); /* Adjust height to fit within the container */
-    border: none; /* Remove default border */
+    height: 100%;
+    border: none;
+    background: transparent;
+}
+
+.iframe-loading {
+    font-family: 'Ubuntu Mono', monospace;
+    text-align: center;
+    padding: 20px;
+    color: #666;
 }
 </style>
 </head>
@@ -387,15 +437,84 @@ body {
     <div id="map"></div>
 </div>
 <div id="card-view" class="view"></div>
-<div id="add-film-view" class="view">
-    <iframe class="airtable-embed" 
-            src="https://airtable.com/embed/appcEBCLKzb58kPPB/pagjjQ3AJxruAD6HK/form" 
-            frameborder="0" 
-            onmousewheel="" 
-            width="100%" 
-            height="533" 
-            style="background: transparent; border: 1px solid #ccc;">
-    </iframe>
+<div id="explore-view" class="view">
+    <div class="explore-container">
+        <div class="tab-container">
+            <div class="tabs">
+                <!-- Main tabs -->
+                <button class="tab-button active" data-tab="films">Films</button>
+                <button class="tab-button" data-tab="filmmakers">Filmmakers</button>
+                <button class="tab-button" data-tab="funders">Funders</button>
+                
+                <!-- Add tabs with lighter styling -->
+                <button class="tab-button add-tab" data-tab="add-film">+ Add Film</button>
+                <button class="tab-button add-tab" data-tab="add-filmmaker">+ Add Filmmaker</button>
+                <button class="tab-button add-tab" data-tab="add-funder">+ Add Funder</button>
+            </div>
+            
+            <!-- Tab content containers -->
+            <div id="films" class="tab-content active">
+                <div class="iframe-loading">Loading Films View...</div>
+                <iframe class="airtable-embed" 
+                        src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrwae4ECyKb0cPsP" 
+                        frameborder="0" 
+                        onmousewheel="" 
+                        style="background: transparent;"
+                        onload="this.previousElementSibling.style.display='none'">
+                </iframe>
+            </div>
+            <div id="filmmakers" class="tab-content">
+                <div class="iframe-loading">Loading Filmmakers View...</div>
+                <iframe class="airtable-embed" 
+                        src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrQitxtltW4WRJoN" 
+                        frameborder="0" 
+                        onmousewheel="" 
+                        style="background: transparent;"
+                        onload="this.previousElementSibling.style.display='none'">
+                </iframe>
+            </div>
+            <div id="funders" class="tab-content">
+                <div class="iframe-loading">Loading Funders View...</div>
+                <iframe class="airtable-embed" 
+                        src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrPGiMywVZjakHde" 
+                        frameborder="0" 
+                        onmousewheel="" 
+                        style="background: transparent;"
+                        onload="this.previousElementSibling.style.display='none'">
+                </iframe>
+            </div>
+            <div id="add-film" class="tab-content">
+                <div class="iframe-loading">Loading Add Film Form...</div>
+                <iframe class="airtable-embed" 
+                        src="https://airtable.com/embed/appcEBCLKzb58kPPB/pagjjQ3AJxruAD6HK/form" 
+                        frameborder="0" 
+                        onmousewheel="" 
+                        style="background: transparent;"
+                        onload="this.previousElementSibling.style.display='none'">
+                </iframe>
+            </div>
+            <div id="add-filmmaker" class="tab-content">
+                <div class="iframe-loading">Loading Add Filmmaker Form...</div>
+                <iframe class="airtable-embed" 
+                        src="https://airtable.com/embed/appcEBCLKzb58kPPB/pagqAPsWOx9CBK2CL/form" 
+                        frameborder="0" 
+                        onmousewheel="" 
+                        style="background: transparent;"
+                        onload="this.previousElementSibling.style.display='none'">
+                </iframe>
+            </div>
+            <div id="add-funder" class="tab-content">
+                <div class="iframe-loading">Loading Add Funder Form...</div>
+                <iframe class="airtable-embed" 
+                        src="https://airtable.com/embed/appcEBCLKzb58kPPB/pag6XPNdpsbtPH7q4/form" 
+                        frameborder="0" 
+                        onmousewheel="" 
+                        style="background: transparent;"
+                        onload="this.previousElementSibling.style.display='none'">
+                </iframe>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div id="sidebar">
@@ -432,36 +551,6 @@ body {
         <button class="modal-close">&times;</button>
         <h2>Raw Airtable Data</h2>
         <pre id="rawDataContent"></pre>
-    </div>
-</div>
-
-<div id="explore-data-view" class="content-container">
-    <div class="tab">
-        <button class="tablinks active" onclick="openTab(event, 'Films')">Films</button>
-        <button class="tablinks" onclick="openTab(event, 'Funders')">Funders</button>
-        <button class="tablinks" onclick="openTab(event, 'Filmmakers')">Filmmakers</button>
-        <button class="tablinks" onclick="openTab(event, 'AddFilm')">+ Add A Film</button>
-        <button class="tablinks" onclick="openTab(event, 'AddFilmmaker')">+ Add Filmmaker</button>
-        <button class="tablinks" onclick="openTab(event, 'AddFunder')">+ Add Funder</button>
-    </div>
-
-    <div id="Films" class="tabcontent" style="display: block;">
-        <iframe class="airtable-embed" src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrwae4ECyKb0cPsP"></iframe>
-    </div>
-    <div id="Funders" class="tabcontent">
-        <iframe class="airtable-embed" src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrPGiMywVZjakHde"></iframe>
-    </div>
-    <div id="Filmmakers" class="tabcontent">
-        <iframe class="airtable-embed" src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrQitxtltW4WRJoN"></iframe>
-    </div>
-    <div id="AddFilm" class="tabcontent">
-        <iframe class="airtable-embed" src="https://airtable.com/embed/appcEBCLKzb58kPPB/pagjjQ3AJxruAD6HK/form"></iframe>
-    </div>
-    <div id="AddFilmmaker" class="tabcontent">
-        <iframe class="airtable-embed" src="https://airtable.com/embed/appcEBCLKzb58kPPB/pagqAPsWOx9CBK2CL/form"></iframe>
-    </div>
-    <div id="AddFunder" class="tabcontent">
-        <iframe class="airtable-embed" src="https://airtable.com/embed/appcEBCLKzb58kPPB/pag6XPNdpsbtPH7q4/form"></iframe>
     </div>
 </div>
 
@@ -1036,8 +1125,7 @@ function createCardView(features) {
 function switchView(viewName) {
     const mapView = document.getElementById('map-view');
     const cardView = document.getElementById('card-view');
-    const addFilmView = document.getElementById('add-film-view');
-    const exploreDataView = document.getElementById('explore-data-view');
+    const exploreView = document.getElementById('explore-view');
     
     // Update toggle buttons
     document.querySelectorAll('.view-toggle').forEach(button => {
@@ -1045,9 +1133,9 @@ function switchView(viewName) {
     });
     
     // Hide all views first
-    [mapView, cardView, addFilmView, exploreDataView].forEach(el => el.style.display = 'none');
+    [mapView, cardView, exploreView].forEach(el => el.style.display = 'none');
     
-    // Show selected view or navigate to dataplay.html
+    // Show selected view
     switch(viewName) {
         case 'map':
             mapView.style.display = 'block';
@@ -1060,10 +1148,7 @@ function switchView(viewName) {
             }
             break;
         case 'explore':
-            exploreDataView.style.display = 'block';
-            break;
-        case 'add-film':
-            addFilmView.style.display = 'flex';
+            exploreView.style.display = 'block';
             break;
     }
 }
@@ -1157,20 +1242,18 @@ document.getElementById('rawDataModal').addEventListener('click', (e) => {
     }
 });
 
-function openTab(evt, tabName) {
-    var i, tabcontent, tablinks;
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-    tablinks = document.getElementsByClassName("tablinks");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-    document.getElementById(tabName).style.display = "block";
-    evt.currentTarget.className += " active";
-}
-// ...existing code...
+// Add tab functionality
+document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', () => {
+        // Remove active class from all buttons and content
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked button and corresponding content
+        button.classList.add('active');
+        document.getElementById(button.dataset.tab).classList.add('active');
+    });
+});
 </script>
 
 </body>
