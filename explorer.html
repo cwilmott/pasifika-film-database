@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Pasifika Film Database</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+<style>
+body { 
+    margin: 0; 
+    padding: 0; 
+    background: linear-gradient(135deg, #1f656d 0%, #88b7bb 100%);
+    min-height: 100vh;  /* Ensure gradient covers full viewport height */
+}
+
+.site-title {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            z-index: 1000;
+            font-family: 'Ubuntu Mono', monospace;
+            color: white;
+            font-size: 24px;
+            text-align: right;
+        }
+#error-message {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+    z-index: 1000;
+}
+#loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 4px;
+    display: none;
+    z-index: 1000;
+}
+
+/* View Toggle Styles */
+#view-toggles {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px;
+    border-radius: 4px;
+    display: flex;
+    gap: 5px;
+}
+
+.view-toggle {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #fff;
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+.view-toggle.active {
+    background: rgba(201, 172, 115, 0.7);
+    color: black;
+}
+
+#explore-view {
+    position: absolute;
+    top: 60px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 4px;
+    padding: 20px;
+    overflow-y: auto;
+    display: block;  /* Changed from none to block */
+    z-index: 999;
+}
+
+/* Tab Styles */
+.tab-container {
+    margin-bottom: 20px;
+}
+
+.tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Ubuntu Mono', monospace;
+    background: #fff;
+    transition: background-color 0.3s;
+}
+
+.tab-button:hover {
+    background: rgba(201, 172, 115, 0.5);
+}
+
+.tab-button.active {
+    background: rgba(201, 172, 115, 0.7);
+}
+
+.tab-button.add-tab {
+    color: #666;
+    font-weight: 300;
+}
+
+.tab-content {
+    display: none;
+    padding: 0; /* Changed from 20px */
+    background: white;
+    border-radius: 4px;
+    height: calc(100vh - 140px); /* Adjusted height */
+    overflow: visible; /* Changed from hidden */
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    overflow: visible; /* Added overflow property */
+}
+
+.iframe-loading {
+    font-family: 'Ubuntu Mono', monospace;
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+</style>
+</head>
+<body>
+<div class="site-title">The Pasifika Film Database</div>
+
+<div id="view-toggles">
+    <a href="index.html#map"><button class="view-toggle" data-view="map">Map View</button></a>
+    <a href="index.html#card"><button class="view-toggle" data-view="card">Card View</button></a>
+    <button class="view-toggle active" data-view="explore">Explore the Data</button>
+</div>
+
+<div id="explore-view" class="view">
+    <div class="explore-container">
+        <div class="tab-container">
+            <div class="tabs">
+                <!-- Main tabs -->
+                <button class="tab-button active" data-tab="films">Films</button>
+                <button class="tab-button" data-tab="filmmakers">Filmmakers</button>
+                <button class="tab-button" data-tab="funders">Funders</button>
+                
+                <!-- Add tabs with lighter styling -->
+                <button class="tab-button add-tab" data-tab="add-film">+ Add Film</button>
+                <button class="tab-button add-tab" data-tab="add-filmmaker">+ Add Filmmaker</button>
+                <button class="tab-button add-tab" data-tab="add-funder">+ Add Funder</button>
+            </div>
+            
+            <!-- Tab content containers -->
+            <div id="films" class="tab-content active">
+                <iframe class="airtable-embed" 
+                        data-src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrwae4ECyKb0cPsP?backgroundColor=gray" 
+                        frameborder="0" 
+                        width="100%" 
+                        height="100%" 
+                        loading="lazy"
+                        style="background: transparent; border: none;">
+                </iframe>
+            </div>
+            <div id="filmmakers" class="tab-content">
+                <iframe class="airtable-embed" 
+                        data-src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrQitxtltW4WRJoN?backgroundColor=gray" 
+                        frameborder="0" 
+                        width="100%" 
+                        height="100%" 
+                        loading="lazy"
+                        style="background: transparent; border: none;">
+                </iframe>
+            </div>
+            <div id="funders" class="tab-content">
+                <iframe class="airtable-embed" 
+                        data-src="https://airtable.com/embed/appcEBCLKzb58kPPB/shrPGiMywVZjakHde?backgroundColor=gray" 
+                        frameborder="0" 
+                        width="100%" 
+                        height="100%" 
+                        loading="lazy"
+                        style="background: transparent; border: none;">
+                </iframe>
+            </div>
+            <div id="add-film" class="tab-content">
+                <iframe class="airtable-embed" 
+                        data-src="https://airtable.com/embed/appcEBCLKzb58kPPB/pagjjQ3AJxruAD6HK/form" 
+                        frameborder="0" 
+                        width="100%" 
+                        height="100%" 
+                        loading="lazy"
+                        style="background: transparent; border: none;">
+                </iframe>
+            </div>
+            <div id="add-filmmaker" class="tab-content">
+                <iframe class="airtable-embed" 
+                        data-src="https://airtable.com/embed/appcEBCLKzb58kPPB/pagqAPsWOx9CBK2CL/form" 
+                        frameborder="0" 
+                        width="100%" 
+                        height="100%" 
+                        loading="lazy"
+                        style="background: transparent; border: none;">
+                </iframe>
+            </div>
+            <div id="add-funder" class="tab-content">
+                <iframe class="airtable-embed" 
+                        data-src="https://airtable.com/embed/appcEBCLKzb58kPPB/pag6XPNdpsbtPH7q4/form" 
+                        frameborder="0" 
+                        width="100%" 
+                        height="100%" 
+                        loading="lazy"
+                        style="background: transparent; border: none;">
+                </iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+// Add tab functionality
+document.addEventListener('DOMContentLoaded', () => {
+    // Get all tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all buttons and content
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding content
+            button.classList.add('active');
+            document.getElementById(button.dataset.tab).classList.add('active');
+            
+            // Load iframe content when tab is clicked
+            const tabId = button.dataset.tab;
+            const iframe = document.querySelector(`#${tabId} iframe`);
+            if (iframe && !iframe.src && iframe.dataset.src) {
+                iframe.src = iframe.dataset.src;
+            }
+        });
+    });
+
+    // Load initial active tab's iframe
+    const activeIframe = document.querySelector('.tab-content.active iframe');
+    if (activeIframe && !activeIframe.src && activeIframe.dataset.src) {
+        activeIframe.src = activeIframe.dataset.src;
+    }
+});
+</script>
+
+
+</body>
+</html>
